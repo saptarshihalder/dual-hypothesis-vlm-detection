@@ -1,0 +1,33 @@
+# ---- credentials / secrets -------------------------------------------------
+*.env
+.env*
+*token*
+*TOKEN*
+*secret*
+*password*
+login_to_server_info
+# HF cache and model weights - NEVER push these
+hf_cache/
+*.safetensors
+*.bin
+pytorch_model*.bin
+model.ckpt
+
+# ---- python ----------------------------------------------------------------
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# ---- datasets (too big) ----------------------------------------------------
+dataset/
+*.tar
+*.tar.gz
+*.zip
+
+# ---- OS --------------------------------------------------------------------
+.DS_Store
+Thumbs.db
