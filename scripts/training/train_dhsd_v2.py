@@ -41,33 +41,91 @@ import open_clip
 sys.stdout.reconfigure(line_buffering=True)
 
 # ================= CONFIG =================
+import argparse as _ap
+import yaml as _yaml
+
+def _parse_args():
+    p = _ap.ArgumentParser(description="DHSD v2 — Adaptive Dual-Signal Distillation")
+    p.add_argument("--config",        default=None,  help="YAML config file")
+    p.add_argument("--data_root",     default=None,  help="root dataset directory")
+    p.add_argument("--teacher_prob",  default=None,  help="teacher_probs.npz path")
+    p.add_argument("--out_dir",       default=None,  help="output directory")
+    p.add_argument("--epochs",        type=int,   default=None)
+    p.add_argument("--lr",            type=float, default=None)
+    p.add_argument("--batch_size",    type=int,   default=None)
+    p.add_argument("--patience",      type=int,   default=None)
+    p.add_argument("--alpha_teacher", type=float, default=None)
+    p.add_argument("--beta_clip",     type=float, default=None)
+    return p.parse_args()
+
+def _load_cfg(args):
+    # Defaults
+    cfg = dict(
+        epochs=15, batch_size=96, lr=1.5e-4, weight_decay=1e-4,
+        warmup_epochs=2, patience=5, alpha_teacher=0.5,
+        beta_clip=1.5, temp=4.0,
+        data_root=None, teacher_prob=None, out_dir=None,
+    )
+    # YAML overrides defaults
+    if args.config:
+        raw = _yaml.safe_load(open(args.config))
+        tr  = raw.get("training", {})
+        kd  = raw.get("distillation", {})
+        cfg.update({k: v for k, v in {
+            "epochs":        tr.get("epochs"),
+            "batch_size":    tr.get("batch_size"),
+            "lr":            tr.get("lr"),
+            "weight_decay":  tr.get("weight_decay"),
+            "warmup_epochs": tr.get("warmup_epochs"),
+            "patience":      tr.get("patience"),
+            "alpha_teacher": kd.get("alpha_teacher"),
+            "beta_clip":     kd.get("beta_clip"),
+            "temp":          kd.get("temperature"),
+        }.items() if v is not None})
+    # CLI overrides everything
+    for k, v in [
+        ("epochs",        args.epochs),
+        ("lr",            args.lr),
+        ("batch_size",    args.batch_size),
+        ("patience",      args.patience),
+        ("alpha_teacher", args.alpha_teacher),
+        ("beta_clip",     args.beta_clip),
+    ]:
+        if v is not None:
+            cfg[k] = v
+    # Paths: CLI > env > fallback
+    cfg["data_root"]   = (args.data_root
+                          or os.environ.get("DATA_ROOT")
+                          or "/NAS_DISK/Saptarshi_data/dataset")
+    cfg["teacher_prob"] = (args.teacher_prob
+                           or os.environ.get("TEACHER_PROB")
+                           or "/NAS_DISK/Saptarshi_data/hybrid_teacher_soft_labels.npz")
+    cfg["out_dir"]     = args.out_dir
+    return cfg
+
+_ARGS = _parse_args()
+_CFG  = _load_cfg(_ARGS)
+
 SEED         = 42
 DEVICE       = "cuda"
-HF_CACHE     = "/NAS_DISK/Saptarshi_data/hf_cache"
-DATA_ROOT    = Path(os.environ.get("DATA_ROOT", "/NAS_DISK/Saptarshi_data/dataset"))
+DATA_ROOT    = Path(_CFG["data_root"])
 CNN_ROOT     = DATA_ROOT / "cnndetection_test"
-
-TEACHER_PROB = "/NAS_DISK/Saptarshi_data/hybrid_teacher_soft_labels.npz"
-# Schema: keys = {'ids', 'probs', 'labels'}
-#   ids:    (N,)   str, e.g. 'img000008'
-#   probs:  (N, 2) float32, columns = [P_real, P_fake]
-#   labels: (N,)   int, 0=real, 1=fake
-
-OUT_DIR = Path(f"/NAS_DISK/Saptarshi_data/dhsd_v2_{time.strftime('%Y%m%d_%H%M%S')}")
+TEACHER_PROB = Path(_CFG["teacher_prob"])
+OUT_DIR      = Path(_CFG["out_dir"]) if _CFG["out_dir"] else                Path(_CFG["data_root"]).parent / f"dhsd_v2_{time.strftime('%Y%m%d_%H%M%S')}"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Training
-EPOCHS         = 15
-BATCH_SIZE     = 96
-LR             = 1.5e-4
-WEIGHT_DECAY   = 1e-4
-PATIENCE       = 5
-WARMUP_EPOCHS  = 2
+EPOCHS         = _CFG["epochs"]
+BATCH_SIZE     = _CFG["batch_size"]
+LR             = _CFG["lr"]
+WEIGHT_DECAY   = _CFG["weight_decay"]
+PATIENCE       = _CFG["patience"]
+WARMUP_EPOCHS  = _CFG["warmup_epochs"]
 
 # Loss weights
-ALPHA_TEACHER  = 0.5    # adaptive teacher KD
-BETA_CLIP      = 1.5    # adaptive CLIP-zero-shot KD
-TEMP           = 4.0    # distillation temperature
+ALPHA_TEACHER  = _CFG["alpha_teacher"]   # adaptive teacher KD
+BETA_CLIP      = _CFG["beta_clip"]       # adaptive CLIP-zero-shot KD
+TEMP           = _CFG["temp"]            # distillation temperature
 
 # CLIP zero-shot prompts
 REAL_PROMPTS = [

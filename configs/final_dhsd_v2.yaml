@@ -1,44 +1,46 @@
-# Final hyperparameters used to produce crossgen test macro AUROC=0.8288
-# Run: python3 scripts/training/train_dhsd_v2.py --config configs/final_dhsd_v2.yaml
-
-model:
-  backbone: "ViT-L-14"
-  backbone_pretrained: "openai"
-  head_params: 0.71M
-
-training:
-  epochs: 15
-  batch_size: 96
-  lr: 1.5e-4
-  weight_decay: 1.0e-4
-  warmup_epochs: 2
-  patience: 5
-  seed: 42
-  best_epoch: 3  # actual epoch selected by early stopping
-
-distillation:
-  alpha_teacher: 0.5
-  beta_clip: 1.5
-  temperature: 4.0
-
-scheduler:
-  type: OneCycleLR
-  pct_start: 0.1
-  anneal_strategy: cos
-  div_factor: 25
-  final_div_factor: 1000
+# Final hyperparameters — DHSD v2 Student
+# Produces crossgen test macro AUROC=0.8288 on CNNDetection (13 generators)
+# Usage: python3 scripts/training/train_dhsd_v2.py --config configs/final_dhsd_v2.yaml
 
 data:
-  train_fake: "${DATA_ROOT}/fake/midjourney"
-  train_real: "${DATA_ROOT}/real/coco"
-  crossgen_test: "${DATA_ROOT}/cnndetection_test"
-  teacher_probs: "${TEACHER_PROB}"
-  val_split: 0.15
-  test_split: 0.15
+  train_fake:   null   # set via --data_root or DATA_ROOT env var
+  train_real:   null   # set via --data_root or DATA_ROOT env var
+  crossgen_test: null  # set via --data_root or DATA_ROOT env var
+  teacher_probs: null  # set via --teacher_prob or TEACHER_PROB env var
+  val_split:    0.15
+  test_split:   0.15
+
+model:
+  backbone:             ViT-L-14
+  backbone_pretrained:  openai
+  trainable_params:     0.71M
+
+training:
+  epochs:         15
+  batch_size:     96
+  lr:             0.00015
+  weight_decay:   0.0001
+  warmup_epochs:  2
+  patience:       5
+  seed:           42
+
+distillation:
+  alpha_teacher:  0.5
+  beta_clip:      1.5
+  temperature:    4.0
+
+scheduler:
+  type:             OneCycleLR
+  pct_start:        0.1
+  anneal_strategy:  cos
+  div_factor:       25
+  final_div_factor: 1000
 
 results:
+  best_epoch:               3
+  crossgen_val_macro_auroc: 0.8318
   crossgen_test_macro_auroc: 0.8288
-  crossgen_test_macro_ap: 83.94
-  mj_test_auroc: 1.0000
-  generators_above_0.80: 8
-  total_generators: 13
+  crossgen_test_macro_ap:   83.94
+  mj_test_auroc:            1.0000
+  generators_above_0p80:    8
+  total_generators:         13

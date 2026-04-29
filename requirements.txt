@@ -16,3 +16,4 @@ seaborn
 scikit-learn
 pandas
 xgboost
+pyyaml
