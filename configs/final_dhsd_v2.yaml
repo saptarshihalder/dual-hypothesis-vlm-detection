@@ -1,0 +1,44 @@
+# Final hyperparameters used to produce crossgen test macro AUROC=0.8288
+# Run: python3 scripts/training/train_dhsd_v2.py --config configs/final_dhsd_v2.yaml
+
+model:
+  backbone: "ViT-L-14"
+  backbone_pretrained: "openai"
+  head_params: 0.71M
+
+training:
+  epochs: 15
+  batch_size: 96
+  lr: 1.5e-4
+  weight_decay: 1.0e-4
+  warmup_epochs: 2
+  patience: 5
+  seed: 42
+  best_epoch: 3  # actual epoch selected by early stopping
+
+distillation:
+  alpha_teacher: 0.5
+  beta_clip: 1.5
+  temperature: 4.0
+
+scheduler:
+  type: OneCycleLR
+  pct_start: 0.1
+  anneal_strategy: cos
+  div_factor: 25
+  final_div_factor: 1000
+
+data:
+  train_fake: "${DATA_ROOT}/fake/midjourney"
+  train_real: "${DATA_ROOT}/real/coco"
+  crossgen_test: "${DATA_ROOT}/cnndetection_test"
+  teacher_probs: "${TEACHER_PROB}"
+  val_split: 0.15
+  test_split: 0.15
+
+results:
+  crossgen_test_macro_auroc: 0.8288
+  crossgen_test_macro_ap: 83.94
+  mj_test_auroc: 1.0000
+  generators_above_0.80: 8
+  total_generators: 13

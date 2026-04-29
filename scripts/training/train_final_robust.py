@@ -1,3 +1,7 @@
+# ARCHIVAL SCRIPT — not used in final paper
+# Kept for ablation reference only.
+# For the final model, use scripts/training/train_dhsd_v2.py
+# ---------------------------------------------------------------
 #!/usr/bin/env python3
 """
 FINAL ROBUST TRAINING — survives disconnect, saves everything.

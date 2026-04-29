@@ -44,7 +44,7 @@ sys.stdout.reconfigure(line_buffering=True)
 SEED         = 42
 DEVICE       = "cuda"
 HF_CACHE     = "/NAS_DISK/Saptarshi_data/hf_cache"
-DATA_ROOT    = Path("/NAS_DISK/Saptarshi_data/dataset")
+DATA_ROOT    = Path(os.environ.get("DATA_ROOT", "/NAS_DISK/Saptarshi_data/dataset"))
 CNN_ROOT     = DATA_ROOT / "cnndetection_test"
 
 TEACHER_PROB = "/NAS_DISK/Saptarshi_data/hybrid_teacher_soft_labels.npz"
