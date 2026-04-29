@@ -108,6 +108,70 @@ _CFG  = _load_cfg(_ARGS)
 
 SEED         = 42
 DEVICE       = "cuda"
+import os
+import argparse
+import yaml
+
+def parse_args():
+    ap = argparse.ArgumentParser(
+        description="DHSD v2 — Adaptive Dual-Signal Distillation")
+    ap.add_argument("--config",       default=None,
+                    help="path to YAML config (configs/final_dhsd_v2.yaml)")
+    ap.add_argument("--data_root",    default=None,
+                    help="root dataset directory")
+    ap.add_argument("--teacher_prob", default=None,
+                    help="path to teacher_probs.npz")
+    ap.add_argument("--out_dir",      default=None,
+                    help="output directory (default: auto-named under data_root parent)")
+    ap.add_argument("--epochs",       type=int,   default=None)
+    ap.add_argument("--lr",           type=float, default=None)
+    ap.add_argument("--batch_size",   type=int,   default=None)
+    ap.add_argument("--patience",     type=int,   default=None)
+    ap.add_argument("--alpha_teacher",type=float, default=None)
+    ap.add_argument("--beta_clip",    type=float, default=None)
+    return ap.parse_args()
+
+def load_config(args):
+    """Merge YAML config with CLI args. CLI args take priority."""
+    cfg = {}
+    if args.config:
+        with open(args.config) as f:
+            raw = yaml.safe_load(f)
+        cfg["epochs"]         = raw["training"]["epochs"]
+        cfg["lr"]             = raw["training"]["lr"]
+        cfg["batch_size"]     = raw["training"]["batch_size"]
+        cfg["weight_decay"]   = raw["training"]["weight_decay"]
+        cfg["warmup_epochs"]  = raw["training"]["warmup_epochs"]
+        cfg["patience"]       = raw["training"]["patience"]
+        cfg["alpha_teacher"]  = raw["distillation"]["alpha_teacher"]
+        cfg["beta_clip"]      = raw["distillation"]["beta_clip"]
+        cfg["temp"]           = raw["distillation"]["temperature"]
+
+    # CLI overrides
+    for k, v in [
+        ("epochs",        args.epochs),
+        ("lr",            args.lr),
+        ("batch_size",    args.batch_size),
+        ("patience",      args.patience),
+        ("alpha_teacher", args.alpha_teacher),
+        ("beta_clip",     args.beta_clip),
+    ]:
+        if v is not None:
+            cfg[k] = v
+
+    # Data paths: CLI > env var > default
+    cfg["data_root"]    = (args.data_root
+                           or os.environ.get("DATA_ROOT")
+                           or "/NAS_DISK/Saptarshi_data/dataset")
+    cfg["teacher_prob"] = (args.teacher_prob
+                           or os.environ.get("TEACHER_PROB")
+                           or "/NAS_DISK/Saptarshi_data/teacher_hybrid.npz")
+    cfg["out_dir"]      = args.out_dir  # None = auto-named
+    return cfg
+
+_ARGS = parse_args()
+_CFG  = load_config(_ARGS)
+
 DATA_ROOT    = Path(_CFG["data_root"])
 CNN_ROOT     = DATA_ROOT / "cnndetection_test"
 TEACHER_PROB = Path(_CFG["teacher_prob"])
