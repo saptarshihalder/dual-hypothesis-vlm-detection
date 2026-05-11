@@ -31,3 +31,7 @@ dataset/
 # ---- OS --------------------------------------------------------------------
 .DS_Store
 Thumbs.db
+
+# Excluded large files (over GitHub 100 MB limit)
+univfd_best.pt
+ep0*.pt
